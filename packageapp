@@ -1,0 +1,11 @@
+#!/bin/sh
+
+PACKAGENAME=$1
+
+# Build the app...
+xcodebuild clean
+xcodebuild
+
+# Package the app
+rm -rf *.pkg
+productbuild --component build/Release/${PACKAGENAME}.app /Applications --sign "3rd Party Mac Developer Installer: Open Logic Corporation" --product product_def.plist ${PACKAGENAME}.pkg

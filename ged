@@ -1,0 +1,10 @@
+#!/bin/sh
+PATTERN=$1
+FILES=`ls -C1 $2`
+for file in $FILES
+do
+	echo "Editing $file"
+	mv ${file} ${file}.old
+	cat ${file}.old | sed "${PATTERN}" > ${file}
+done
+exit 0

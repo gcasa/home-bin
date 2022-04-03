@@ -1,0 +1,9 @@
+#!/bin/sh
+
+PATTERN=$1
+FILES=`ls -cf $2`
+
+for i in $FILES; do 
+  name=`echo $i | sed ${PATTERN}`; 
+  mv $i $name; echo "$i -> $name"; 
+done
