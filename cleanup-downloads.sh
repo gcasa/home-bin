@@ -31,8 +31,8 @@ echo "Applications..."
 mv 2> /dev/null *.app ~/Applications
 
 # All else in trash...
-echo "Trash..."
-mv 2> /dev/null * ~/.Trash
+echo "Delete..."
+rm -rf *
 
 echo " "
 popd
