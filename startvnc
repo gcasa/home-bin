@@ -1,0 +1,8 @@
+#!/bin/sh
+
+while
+	true
+do
+	rm -rf /tmp/.X*-lock
+	vncserver -geometry 3830x2130
+done
