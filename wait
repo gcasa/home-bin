@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# wait for the specified PID to end...
+
 PID=$1
 
 while kill -0 $PID 2> /dev/null; do sleep 1; done;
