@@ -1,0 +1,9 @@
+#!/bin/sh
+
+killall startvnc
+killall Xtightvnc
+rm -rf /tmp/.X11-unix/*
+
+echo "Done."
+
+exit 0
