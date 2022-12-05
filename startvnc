@@ -3,10 +3,14 @@
 while
 	true
 do
-	rm -rf /tmp/.X11-lock/*
-	vncserver -geometry 3830x2130
-	sleep 1
-	PID=`pgrep Xtightvnc`
-	while kill -0 $PID 2> /dev/null; do sleep 1; done;
-	sleep 1
+    # ~/bin/stopvnc
+
+    echo "Starting vnc service..."
+    vncserver -geometry 3840x2160 
+    echo "Started"
+    sleep 1
+    
+    PID=`pgrep Xtightvnc`
+    while kill -0 $PID 2> /dev/null; do sleep 1; done;
+    sleep 1
 done
