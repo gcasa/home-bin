@@ -1,0 +1,11 @@
+#!/bin/sh
+
+echo "Stopping VNC service..."
+killall startvnc
+killall Xtightvnc
+
+sudo rm -rf /tmp/.X11-unix/*
+sudo rm -rf /tmp/.X1-lock
+echo "Stopped"
+
+exit 0

@@ -1,0 +1,16 @@
+#!/bin/sh
+
+while
+	true
+do
+    # ~/bin/stopvnc
+
+    echo "Starting vnc service..."
+    vncserver -geometry 3840x2160 
+    echo "Started"
+    sleep 1
+    
+    PID=`pgrep Xtightvnc`
+    while kill -0 $PID 2> /dev/null; do sleep 1; done;
+    sleep 1
+done
