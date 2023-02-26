@@ -1,3 +1,11 @@
 #!/bin/sh
+
+# Update brew...
+
 export PATH=/usr/local/bin:${PATH}
-brew update && brew upgrade
+
+echo "Updating..."
+brew update
+brew upgrade
+brew cleanup
+echo "Done..."
