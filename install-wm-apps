@@ -1,0 +1,7 @@
+#!/bin/sh
+
+sudo apt install wmcpuload
+sudo apt install wmclockmon
+sudo apt install wmmemload
+
+exit 0
