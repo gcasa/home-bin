@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# set up mount directory
+rm 2> /dev/null -rf /tmp/heron
+mkdir 2> /dev/null /tmp/heron
+
+# mount...
+echo "Mounting..."
+mount_nfs -o nolock -o udp -o nfsvers=2 genoa:/Disk1/heron /tmp/heron
+
+exit 0
