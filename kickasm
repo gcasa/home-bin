@@ -1,0 +1,5 @@
+#!/bin/bash
+
+java -jar /opt/local/KickAssembler/KickAss.jar $1
+
+exit 0
