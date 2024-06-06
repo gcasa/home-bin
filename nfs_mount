@@ -2,7 +2,7 @@
 
 # set up mount directory
 echo "Setting up"
-sudo rm 2> /dev/null -rf /Volumes/heron_next
+# sudo rm 2> /dev/null -rf /Volumes/heron_next
 sudo mkdir 2> /dev/null /Volumes/heron_next
 
 # mount...
