@@ -7,6 +7,6 @@ sudo mkdir 2> /dev/null /Volumes/heron_mac
 
 # mount...
 echo "Mounting..."
-sudo mount_nfs bomb20:/Users/heron /Volumes/heron_mac
+sudo mount_nfs -P bomb20:/Users/heron /Volumes/heron_mac
 
 exit 0
