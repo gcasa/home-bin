@@ -26,9 +26,11 @@ if [ $# -eq 0 ]; then
 fi
 
 PROCESS_NAME=$1
+PROCESSES=`ps auxwww | grep $PROCESS_NAME | awk '{print $2}'`
 
 # Loop through all processes and kill the ones with the specified name
-for PID in $(ps -e -o pid= -o comm= | awk -v pname="$PROCESS_NAME" '$2 == pname {print $1}'); do
+for PID in $PROCESSES 
+do
     kill $SIGNAL $PID
     if [ $? -eq 0 ]; then
         echo "Killed $PROCESS_NAME with PID $PID"
