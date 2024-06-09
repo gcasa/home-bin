@@ -26,7 +26,7 @@ if [ $# -eq 0 ]; then
 fi
 
 PROCESS_NAME=$1
-PROCESSES=`ps auxwww | grep $PROCESS_NAME | awk '{print $2}'`
+PROCESSES=`ps auxwww | grep -v killall.sh | grep $PROCESS_NAME | awk '{print $2}'`
 
 # Loop through all processes and kill the ones with the specified name
 for PID in $PROCESSES 
