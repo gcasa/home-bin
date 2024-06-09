@@ -31,7 +31,7 @@ PROCESSES=`ps auxwww | grep -v killall.sh | grep $PROCESS_NAME | awk '{print $2}
 # Loop through all processes and kill the ones with the specified name
 for PID in $PROCESSES 
 do
-    kill $SIGNAL $PID
+    kill 2> /dev/null $SIGNAL $PID
     if [ $? -eq 0 ]; then
         echo "Killed $PROCESS_NAME with PID $PID"
     else
