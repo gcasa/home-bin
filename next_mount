@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# set up mount directory
+echo "Setting up"
+sudo rmdir 2> /dev/null /Volumes/heron_next
+sudo mkdir 2> /dev/null /Volumes/heron_next
+sudo chmod -R 0777 /Volumes/heron_next
+  
+# mount...
+echo "Mounting..."
+sudo mount -t nfs -o noresvport -o nolock -o udp -o nfsvers=2 genoa:/Users/heron /Volumes/heron_next
+
+exit $?
