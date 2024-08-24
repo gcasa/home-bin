@@ -10,4 +10,4 @@ git remote add origin git@github.com:gcasa/NSBrowser_binding_test.git
 git branch -M main
 git push -u origin main
 
-exit 0
+exit $?
