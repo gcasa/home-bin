@@ -1,0 +1,13 @@
+#!/bin/sh
+
+PWD=`pwd`
+REPONAME=`basename ${PWD}`
+
+echo "# ${REPONAME}" > README.md
+git add *
+git commit -am "Add initial files"
+git remote add origin git@github.com:gcasa/NSBrowser_binding_test.git
+git branch -M main
+git push -u origin main
+
+exit $?
