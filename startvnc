@@ -1,8 +1,12 @@
 #!/bin/sh
 
-while
-	true
-do
+echo "Cleanup after previous run..."
+sudo rm -rf /tmp/.X*
+cd
+
+#while
+#	true
+#do
     # ~/bin/stopvnc
 
     echo "Starting vnc service..."
@@ -13,4 +17,4 @@ do
     PID=`pgrep Xtightvnc`
     while kill -0 $PID 2> /dev/null; do sleep 1; done;
     sleep 1
-done
+#done
