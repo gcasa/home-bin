@@ -2,13 +2,21 @@
 
 # set up mount directory
 echo "Setting up"
-sudo rmdir 2> /dev/null /Volumes/heron_next
+if [ -e /Volumes/heron_next ]; then
+	sudo rmdir 2> /dev/null /Volumes/heron_next
+fi
 sudo mkdir 2> /dev/null /Volumes/heron_next
 sudo chmod -R 0777 /Volumes/heron_next
-sudo chmod 0777 .
+# sudo chmod 0777 .
   
 # mount...
 echo "Mounting..."
 sudo mount -t nfs -o noresvport,rw,nolock,udp,nfsvers=2 genoa:/Users/heron /Volumes/heron_next
+# RETURN=$?
 
-exit $?
+if [ "$?" != "0" ]; then
+	echo "Error mounting... removing dir"
+	sudo rmdir 2> /dev/null /Volumes/heron_next
+fi
+
+exit 0
