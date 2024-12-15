@@ -9,7 +9,8 @@ if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 fi
 
 # Generate the contributions report.
-echo -e "Contributions\t\t\tEmail"  # Add column headers
+echo -e "Contributions\t\t\tEmail\t\t\t\tName"  # Add column headers
+echo -e "-------------\t\t\t-----\t\t\t\t----"  # Add column headers
 git log --pretty='%an <%ae>' | \
   awk -F'<|>' '{ 
       email = tolower($2);  # Extract and normalize email
@@ -25,7 +26,7 @@ git log --pretty='%an <%ae>' | \
       email = $2;
       sub($1 FS $2 FS, "");  # Remove count and email from line
       name = $0;
-      print count "\t\t\t" email
+      print count "\t\t\t" email "\t\t" name
   }'
 
 exit 0
