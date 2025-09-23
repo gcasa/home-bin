@@ -41,6 +41,13 @@ fi
 NEW_XCODEPROJ_PATH="$PROJECT_PATH/$NEW_NAME.xcodeproj"
 mv "$XCODEPROJ_PATH" "$NEW_XCODEPROJ_PATH"
 
+# Rename .entitlements file
+NEW_ENTITLEMENTS="$PROJECT_PATH/NEW_NAME.entitlements"
+OLD_ENTITLEMENTS="$PROJECT_PATH/OLD_NAME.entitlements"
+if [[ -e "$OLD_ENTITLEMENTS" ]]; then
+  mv $OLD_ENTITLEMENTS $NEW_ENTITLEMENTS
+fi
+
 # Rename project source folder if it matches old name
 if [[ -d "$PROJECT_PATH/$OLD_NAME" ]]; then
   mv "$PROJECT_PATH/$OLD_NAME" "$PROJECT_PATH/$NEW_NAME"
