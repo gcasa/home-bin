@@ -6,7 +6,11 @@ REPONAME=`basename ${PWD}`
 echo "# ${REPONAME}" > README.md
 git add *
 git commit -am "Add initial files"
+<<<<<<< HEAD
 git remote add origin git@github.com:gcasa/${REPONAME}.git
+=======
+git remote add origin git@github.com:gcasa/${REPONAME}
+>>>>>>> 385bfd2a837dc941ca28fd791721417fcf1e5081
 git branch -M main
 git push -u origin main
 

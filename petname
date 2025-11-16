@@ -1,0 +1,24 @@
+#!/bin/sh
+
+# List of pet names
+pet_names=(
+  "Babe" "Baby" "Darling" "Sweetheart" "Honey" "Love" "Angel" "Dear"
+  "Snugglebug" "Snugglebunny" "Cuddlemonster" "Cutiepie" "Cutie" "Boo" "Boo Bear" "Pookie" "Pooks" "Muffin" "Toots"
+  "Kitten" "Kitty" "Bunny" "Bun" "Bear" "Teddy" "Pup" "Puppy" "Chick" "Chickadee" "Foxy" "Fox" "Lamb" "Lambchop"
+  "Sweets" "Sugarplum" "Peach" "Lovebug" "Pumpkin" "Hotstuff" "Cupcake"
+  "Babycakes" "Honeybun" "Angelface" "Lovey" "Babydoll" "Blossom" "Moonbeam"
+  "Heartbreaker" "Trouble" "Rockstar" "Flame" "Wild Thing" "Vixen" "Minx"
+  "Starshine" "Bookworm" "Brainiac" "Muse" "Captain" "Starlord" "Starbaby" "Pixel"
+  "Mi amor" "Mon ch
+ri" "Ma ch
+rie" "Liebchen" "Cara mia" "Habibi" "Habibti" "Aishiteru"
+)
+
+# Get the number of items
+count=${#pet_names[@]}
+
+# Generate a random index
+index=$((RANDOM % count))
+
+# Output a random pet name
+echo "${pet_names[$index]}"
