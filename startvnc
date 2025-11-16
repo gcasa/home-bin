@@ -10,7 +10,7 @@ cd
     # ~/bin/stopvnc
 
     echo "Starting vnc service..."
-    vncserver -geometry 3840x2160 
+    vncserver -geometry 3840x2160 :1
     echo "Started"
     sleep 1
     
