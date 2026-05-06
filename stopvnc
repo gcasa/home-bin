@@ -2,7 +2,7 @@
 
 echo "Stopping VNC service..."
 killall startvnc
-killall Xtightvnc
+vncserver -kill :1
 
 sudo rm -rf /tmp/.X11-unix/*
 sudo rm -rf /tmp/.X1-lock
