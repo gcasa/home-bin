@@ -1,0 +1,86 @@
+import sys
+import re
+from collections import Counter
+
+def normalize_name(name):
+    # Strip non-alphanumeric and lowercase
+    return re.sub(r'[^a-z0-9]', '', name.lower())
+
+def is_generic(local_part):
+    # Digits only
+    if re.match(r'^\d+$', local_part): return True
+    # System users
+    if local_part in ['root', 'nobody', 'daemon', 'localhost']: return True
+    # GitHub noreply (e.g. 12345+user)
+    if re.match(r'^\d+\+[\w-]+$', local_part): return True
+    return False
+
+identities = []
+for line in sys.stdin:
+    line = line.strip()
+    if not line: continue
+    parts = line.split('\t')
+    if len(parts) != 2: continue
+    name, email = parts
+    identities.append((name, email))
+
+total_commits = len(identities)
+raw_counts = Counter(identities)
+raw_identities_count = len(raw_counts)
+
+# Grouping
+groups = {} # key -> list of (name, email)
+for (name, email) in identities:
+    email_lower = email.lower()
+    local_part = email_lower.split('@')[0]
+    
+    if is_generic(local_part):
+        key = "name_" + normalize_name(name)
+    else:
+        key = "email_" + local_part
+    
+    if key not in groups:
+        groups[key] = []
+    groups[key].append((name, email))
+
+consolidated_results = []
+major_merges = []
+
+for key, members in groups.items():
+    count = len(members)
+    member_counts = Counter(members)
+    # Canonical is the identity (Name, Email) that appeared most often in this group
+    canonical = member_counts.most_common(1)[0][0]
+    canonical_display = f"{canonical[0]} <{canonical[1]}>"
+    
+    consolidated_results.append({
+        'commits': count,
+        'canonical': canonical_display,
+        'variants': member_counts
+    })
+    
+    if len(member_counts) >= 2:
+        major_merges.append({
+            'canonical': canonical_display,
+            'variants': member_counts
+        })
+
+consolidated_results.sort(key=lambda x: x['commits'], reverse=True)
+
+print(f"Total commits: {total_commits}")
+print(f"Number of raw identities: {raw_identities_count}")
+print(f"Number of consolidated identities: {len(consolidated_results)}")
+print("")
+print(f"{'Commits':>8} {'%':>7}   {'Canonical Display'}")
+print("-" * 60)
+for item in consolidated_results:
+    perc = (item['commits'] / total_commits) * 100
+    print(f"{item['commits']:8d} {perc:6.2f}%   {item['canonical']}")
+
+print("\nMajor Merges (2+ raw identities merged):")
+print("-" * 60)
+for m in sorted(major_merges, key=lambda x: sum(x['variants'].values()), reverse=True):
+    total = sum(m['variants'].values())
+    print(f"Canonical: {m['canonical']} (Total: {total})")
+    for (name, email), count in m['variants'].most_common():
+        print(f"  - {count:5d}: {name} <{email}>")
