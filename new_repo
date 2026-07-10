@@ -3,7 +3,18 @@
 PWD=`pwd`
 REPONAME=`basename ${PWD}`
 
-echo "# ${REPONAME}" > README.md
+if [ -f .git ]; then
+    echo "Git initialized"
+else
+    git init
+fi
+
+if [ -f README.md ]; then
+    echo "Readme exists..."
+else
+    echo "# ${REPONAME}" > README.md
+fi
+
 git add *
 git commit -am "Add initial files"
 git remote add origin git@github.com:gcasa/${REPONAME}.git
