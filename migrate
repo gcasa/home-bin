@@ -7,14 +7,17 @@ usage() {
 Usage:
   migrate [options] TYPE:PATH [TYPE:PATH ...]
   migrate [options] --manifest FILE
+  migrate [options] --all
 
-Migrate apps and libraries into prefix-named directories such as app-Foo,
-libs-Bar, tool-Baz, like the split layout used by GNUstep-related repos.
+Migrate apps and libraries into prefix-named directories such as app-foo,
+libs-bar, tool-baz, like the split layout used by GNUstep-related repos.
+Each migrated directory is initialized as its own Git repository by default.
 
 Examples:
   migrate app:ProjectCenter libs:BaseKit
   migrate --execute --root ../gnustep app:TextEdit libs:ObjCRuntime
   migrate --copy --manifest migrate.txt
+  migrate --all --from ./GNUstep --root ../split-repos
 
 Manifest format:
   # TYPE PATH [DEST_NAME]
@@ -26,9 +29,12 @@ Options:
   -r, --root DIR       Destination root directory. Default: current directory.
   -f, --from DIR       Source root for relative paths. Default: current directory.
   -m, --manifest FILE  Read migration entries from FILE.
+  -a, --all            Scan source root category directories for projects.
   -x, --execute        Actually perform the migration. Default is dry run.
   -n, --dry-run        Print planned operations without changing files.
   -c, --copy           Copy instead of move.
+  --no-git             Do not run git init in each destination directory.
+  -b, --branch NAME    Initial branch name for git init, such as main.
   --force              Allow existing empty destination directories.
   -h, --help           Show this help.
 
@@ -38,6 +44,9 @@ Entry forms:
 
 Common TYPE values are app, apps, lib, libs, library, framework, tool, tests,
 docs, example, service, daemon, bundle, and game.
+
+--all scans direct child directories below common category directories in the
+source root, such as apps/*, tools/*, libs/*, frameworks/*, tests/*, and docs/*.
 EOF
 }
 
@@ -48,6 +57,10 @@ die() {
 
 info() {
     printf '%s\n' "$*"
+}
+
+lowercase() {
+    printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
 }
 
 prefix_for_type() {
@@ -93,6 +106,34 @@ prefix_for_type() {
 
 is_empty_dir() {
     [ -d "$1" ] && [ -z "$(find "$1" -mindepth 1 -maxdepth 1 -print -quit)" ]
+}
+
+append_scanned_entries() {
+    local source_root=$1
+    local type_dir type path base
+    local category_dirs=(
+        app apps applications
+        lib libs libraries
+        framework frameworks
+        tool tools utilities
+        test tests
+        doc docs documentation
+        example examples samples
+        service services
+        daemon daemons
+        bundle bundles
+        game games
+    )
+
+    for type_dir in "${category_dirs[@]}"; do
+        [ -d "$source_root/$type_dir" ] || continue
+        type=$(prefix_for_type "$type_dir")
+
+        while IFS= read -r -d '' path; do
+            base=$(basename "$path")
+            ENTRIES+=("$type"$'\t'"$type_dir/$base"$'\t'"$base")
+        done < <(find "$source_root/$type_dir" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z)
+    done
 }
 
 append_entry() {
@@ -154,6 +195,9 @@ FROM=.
 DRY_RUN=1
 COPY=0
 FORCE=0
+INIT_GIT=1
+GIT_BRANCH=
+SCAN_ALL=0
 MANIFEST=
 ENTRIES=()
 
@@ -174,6 +218,10 @@ while [ $# -gt 0 ]; do
             MANIFEST=$2
             shift 2
             ;;
+        -a|--all)
+            SCAN_ALL=1
+            shift
+            ;;
         -x|--execute)
             DRY_RUN=0
             shift
@@ -185,6 +233,15 @@ while [ $# -gt 0 ]; do
         -c|--copy)
             COPY=1
             shift
+            ;;
+        --no-git)
+            INIT_GIT=0
+            shift
+            ;;
+        -b|--branch)
+            [ $# -ge 2 ] || die "$1 requires a branch name"
+            GIT_BRANCH=$2
+            shift 2
             ;;
         --force)
             FORCE=1
@@ -215,16 +272,46 @@ if [ -n "$MANIFEST" ]; then
     append_manifest "$MANIFEST"
 fi
 
+[ -d "$FROM" ] || die "source root '$FROM' does not exist"
+
+if [ "$SCAN_ALL" -eq 1 ]; then
+    append_scanned_entries "$FROM"
+fi
+
 [ "${#ENTRIES[@]}" -gt 0 ] || {
     usage >&2
     exit 1
 }
 
-[ -d "$FROM" ] || die "source root '$FROM' does not exist"
-
 if [ "$DRY_RUN" -eq 1 ]; then
     info "Dry run. Re-run with --execute to apply these changes."
 fi
+
+DESTS=()
+for entry in "${ENTRIES[@]}"; do
+    IFS=$'\t' read -r type rel_path dest_name <<<"$entry"
+    prefix=$(prefix_for_type "$type")
+    dest_leaf=$(lowercase "$prefix-$dest_name")
+    source_path=$rel_path
+
+    if [[ "$source_path" != /* ]]; then
+        source_path=$FROM/$source_path
+    fi
+
+    dest_path=$ROOT/$dest_leaf
+
+    [ -e "$source_path" ] || die "source '$source_path' does not exist"
+    [ -d "$source_path" ] || die "source '$source_path' is not a directory"
+
+    for seen_dest in "${DESTS[@]}"; do
+        [ "$seen_dest" != "$dest_path" ] || die "multiple entries target destination '$dest_path'"
+    done
+    DESTS+=("$dest_path")
+
+    if [ -e "$dest_path" ] && { [ "$FORCE" -eq 0 ] || ! is_empty_dir "$dest_path"; }; then
+        die "destination '$dest_path' already exists"
+    fi
+done
 
 mkdir_cmd=(mkdir -p "$ROOT")
 if [ "$DRY_RUN" -eq 1 ]; then
@@ -236,16 +323,14 @@ fi
 for entry in "${ENTRIES[@]}"; do
     IFS=$'\t' read -r type rel_path dest_name <<<"$entry"
     prefix=$(prefix_for_type "$type")
+    dest_leaf=$(lowercase "$prefix-$dest_name")
     source_path=$rel_path
 
     if [[ "$source_path" != /* ]]; then
         source_path=$FROM/$source_path
     fi
 
-    dest_path=$ROOT/$prefix-$dest_name
-
-    [ -e "$source_path" ] || die "source '$source_path' does not exist"
-    [ -d "$source_path" ] || die "source '$source_path' is not a directory"
+    dest_path=$ROOT/$dest_leaf
 
     if [ -e "$dest_path" ]; then
         if [ "$FORCE" -eq 1 ] && is_empty_dir "$dest_path"; then
@@ -268,6 +353,18 @@ for entry in "${ENTRIES[@]}"; do
     info "+ ${cmd[*]}"
     if [ "$DRY_RUN" -eq 0 ]; then
         "${cmd[@]}"
+    fi
+
+    if [ "$INIT_GIT" -eq 1 ]; then
+        if [ -n "$GIT_BRANCH" ]; then
+            git_cmd=(git -C "$dest_path" init -b "$GIT_BRANCH")
+        else
+            git_cmd=(git -C "$dest_path" init)
+        fi
+        info "+ ${git_cmd[*]}"
+        if [ "$DRY_RUN" -eq 0 ]; then
+            "${git_cmd[@]}"
+        fi
     fi
 done
 
