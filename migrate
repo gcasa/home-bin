@@ -1,0 +1,274 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+usage() {
+    cat <<'EOF'
+Usage:
+  migrate [options] TYPE:PATH [TYPE:PATH ...]
+  migrate [options] --manifest FILE
+
+Migrate apps and libraries into prefix-named directories such as app-Foo,
+libs-Bar, tool-Baz, like the split layout used by GNUstep-related repos.
+
+Examples:
+  migrate app:ProjectCenter libs:BaseKit
+  migrate --execute --root ../gnustep app:TextEdit libs:ObjCRuntime
+  migrate --copy --manifest migrate.txt
+
+Manifest format:
+  # TYPE PATH [DEST_NAME]
+  app  ./ProjectCenter
+  libs ./BaseKit GNUstepBase
+  tool ./build-helper
+
+Options:
+  -r, --root DIR       Destination root directory. Default: current directory.
+  -f, --from DIR       Source root for relative paths. Default: current directory.
+  -m, --manifest FILE  Read migration entries from FILE.
+  -x, --execute        Actually perform the migration. Default is dry run.
+  -n, --dry-run        Print planned operations without changing files.
+  -c, --copy           Copy instead of move.
+  --force              Allow existing empty destination directories.
+  -h, --help           Show this help.
+
+Entry forms:
+  TYPE:PATH            Destination name is basename(PATH).
+  TYPE:PATH=DEST_NAME  Destination name is DEST_NAME.
+
+Common TYPE values are app, apps, lib, libs, library, framework, tool, tests,
+docs, example, service, daemon, bundle, and game.
+EOF
+}
+
+die() {
+    printf 'migrate: %s\n' "$*" >&2
+    exit 1
+}
+
+info() {
+    printf '%s\n' "$*"
+}
+
+prefix_for_type() {
+    case "$1" in
+        app|apps|application|applications)
+            printf 'app'
+            ;;
+        lib|libs|library|libraries)
+            printf 'libs'
+            ;;
+        framework|frameworks)
+            printf 'frameworks'
+            ;;
+        tool|tools|utility|utilities)
+            printf 'tool'
+            ;;
+        test|tests)
+            printf 'tests'
+            ;;
+        doc|docs|documentation)
+            printf 'docs'
+            ;;
+        example|examples|sample|samples)
+            printf 'examples'
+            ;;
+        service|services)
+            printf 'service'
+            ;;
+        daemon|daemons)
+            printf 'daemon'
+            ;;
+        bundle|bundles)
+            printf 'bundle'
+            ;;
+        game|games)
+            printf 'game'
+            ;;
+        *)
+            die "unknown type '$1' (use app, libs, framework, tool, tests, docs, examples, service, daemon, bundle, or game)"
+            ;;
+    esac
+}
+
+is_empty_dir() {
+    [ -d "$1" ] && [ -z "$(find "$1" -mindepth 1 -maxdepth 1 -print -quit)" ]
+}
+
+append_entry() {
+    local entry=$1
+    local type path name
+
+    case "$entry" in
+        *:*)
+            type=${entry%%:*}
+            path=${entry#*:}
+            ;;
+        *)
+            die "entry '$entry' must use TYPE:PATH or TYPE:PATH=DEST_NAME"
+            ;;
+    esac
+
+    if [[ "$path" == *=* ]]; then
+        name=${path#*=}
+        path=${path%%=*}
+    else
+        name=$(basename "$path")
+    fi
+
+    [ -n "$type" ] || die "entry '$entry' has an empty type"
+    [ -n "$path" ] || die "entry '$entry' has an empty path"
+    [ -n "$name" ] || die "entry '$entry' has an empty destination name"
+
+    ENTRIES+=("$type"$'\t'"$path"$'\t'"$name")
+}
+
+append_manifest() {
+    local manifest=$1
+    local line_no=0
+    local type path name rest
+
+    [ -f "$manifest" ] || die "manifest '$manifest' does not exist"
+
+    while IFS= read -r line || [ -n "$line" ]; do
+        line_no=$((line_no + 1))
+        line=${line%%#*}
+        line=${line#"${line%%[![:space:]]*}"}
+        line=${line%"${line##*[![:space:]]}"}
+        [ -n "$line" ] || continue
+
+        read -r type path name rest <<<"$line"
+        [ -z "${rest:-}" ] || die "$manifest:$line_no has too many columns"
+        [ -n "${type:-}" ] && [ -n "${path:-}" ] || die "$manifest:$line_no must contain TYPE PATH [DEST_NAME]"
+
+        if [ -n "${name:-}" ]; then
+            ENTRIES+=("$type"$'\t'"$path"$'\t'"$name")
+        else
+            ENTRIES+=("$type"$'\t'"$path"$'\t'"$(basename "$path")")
+        fi
+    done < "$manifest"
+}
+
+ROOT=.
+FROM=.
+DRY_RUN=1
+COPY=0
+FORCE=0
+MANIFEST=
+ENTRIES=()
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -r|--root)
+            [ $# -ge 2 ] || die "$1 requires a directory"
+            ROOT=$2
+            shift 2
+            ;;
+        -f|--from)
+            [ $# -ge 2 ] || die "$1 requires a directory"
+            FROM=$2
+            shift 2
+            ;;
+        -m|--manifest)
+            [ $# -ge 2 ] || die "$1 requires a file"
+            MANIFEST=$2
+            shift 2
+            ;;
+        -x|--execute)
+            DRY_RUN=0
+            shift
+            ;;
+        -n|--dry-run)
+            DRY_RUN=1
+            shift
+            ;;
+        -c|--copy)
+            COPY=1
+            shift
+            ;;
+        --force)
+            FORCE=1
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        --)
+            shift
+            while [ $# -gt 0 ]; do
+                append_entry "$1"
+                shift
+            done
+            ;;
+        -*)
+            die "unknown option '$1'"
+            ;;
+        *)
+            append_entry "$1"
+            shift
+            ;;
+    esac
+done
+
+if [ -n "$MANIFEST" ]; then
+    append_manifest "$MANIFEST"
+fi
+
+[ "${#ENTRIES[@]}" -gt 0 ] || {
+    usage >&2
+    exit 1
+}
+
+[ -d "$FROM" ] || die "source root '$FROM' does not exist"
+
+if [ "$DRY_RUN" -eq 1 ]; then
+    info "Dry run. Re-run with --execute to apply these changes."
+fi
+
+mkdir_cmd=(mkdir -p "$ROOT")
+if [ "$DRY_RUN" -eq 1 ]; then
+    info "+ ${mkdir_cmd[*]}"
+else
+    "${mkdir_cmd[@]}"
+fi
+
+for entry in "${ENTRIES[@]}"; do
+    IFS=$'\t' read -r type rel_path dest_name <<<"$entry"
+    prefix=$(prefix_for_type "$type")
+    source_path=$rel_path
+
+    if [[ "$source_path" != /* ]]; then
+        source_path=$FROM/$source_path
+    fi
+
+    dest_path=$ROOT/$prefix-$dest_name
+
+    [ -e "$source_path" ] || die "source '$source_path' does not exist"
+    [ -d "$source_path" ] || die "source '$source_path' is not a directory"
+
+    if [ -e "$dest_path" ]; then
+        if [ "$FORCE" -eq 1 ] && is_empty_dir "$dest_path"; then
+            rmdir_cmd=(rmdir "$dest_path")
+            info "+ ${rmdir_cmd[*]}"
+            if [ "$DRY_RUN" -eq 0 ]; then
+                "${rmdir_cmd[@]}"
+            fi
+        else
+            die "destination '$dest_path' already exists"
+        fi
+    fi
+
+    if [ "$COPY" -eq 1 ]; then
+        cmd=(cp -R "$source_path" "$dest_path")
+    else
+        cmd=(mv "$source_path" "$dest_path")
+    fi
+
+    info "+ ${cmd[*]}"
+    if [ "$DRY_RUN" -eq 0 ]; then
+        "${cmd[@]}"
+    fi
+done
+
+exit 0
