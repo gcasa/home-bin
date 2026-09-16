@@ -21,7 +21,14 @@ else
     echo "# ${REPONAME}" > README.md
 fi
 
+# Build ignore file
+echo "*.o" >> .gitignore
+echo "*.app" >> .gitignore
+echo ".DS_Store" >> .gitignore
+echo "build" >> .gitignore
+
 # Add files
+git add .gitignore
 git add *
 git commit -am "Add initial files"
 git remote add origin git@github.com:gcasa/${REPONAME}.git
