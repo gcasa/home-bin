@@ -23,9 +23,11 @@ fi
 
 # Build ignore file
 echo "*.o" >> .gitignore
+echo "*.d" >> .gitignore
 echo "*.app" >> .gitignore
 echo ".DS_Store" >> .gitignore
 echo "build" >> .gitignore
+echo "obj" >> .gitignore
 
 # Add files
 git add .gitignore
